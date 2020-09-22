@@ -7,18 +7,101 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
+	// "strconv"
 )
 
+var Debug bool = false
 var ApplicationDescription string = "Binary File Splitting"
 var BuildVersion string = "dev"
 
+func lookupSequence(buffer []byte, sequence []byte) (found bool, sequencePositions []int, err error) {
+
+	var bufferPosition int = 0
+	var sequencePosition int = 0
+	// var sequencePositions []int
+	found = false
+
+	for bufferPosition < len(buffer) {
+
+		// if Debug {
+		// 	log.Printf("lookupSequence Buffer length: %d ", len(buffer))
+		// 	log.Printf("lookupSequence Current buffer position: %d ", bufferPosition)
+		// 	log.Printf("lookupSequence Current sequence position: %d ", sequencePosition)
+		// }
+
+		// if Debug {
+		// 	log.Printf("lookupSequence %#x loop at: %d", sequence, bufferPosition)
+		// }
+
+		if buffer[bufferPosition] == sequence[sequencePosition] {
+
+			if Debug {
+				log.Printf("lookupSequence Found sequence element %#x (len: %d) at: %d", sequence[sequencePosition], len(sequence), bufferPosition)
+			}
+
+			// if len(sequence) == 1 && len(buffer) == 1 {
+			// 	log.Printf("This is the last byte %#x in given buffer.", sequence)
+			// 	found = true
+			// }
+
+			if len(sequence) > 1 {
+				if Debug {
+					log.Printf("lookupSequence calling recursive for sequence %#x in buffer len %d at: %d", sequence, len(buffer), bufferPosition)
+				}
+				found, _, err = lookupSequence(buffer[bufferPosition:bufferPosition+len(sequence)], sequence[1:])
+				if Debug {
+					log.Printf("lookupSequence recursive result %t sequence %#x in buffer len %d at: %d", found, sequence, len(buffer), bufferPosition)
+				}
+				// return found, position, err
+
+			} else {
+				found = true
+				// sequencePositions = bufferPosition
+				if Debug {
+					log.Printf("Returning success for sequence %#x (len: %d)", sequence, len(sequence))
+				}
+				return found, sequencePositions, nil
+
+			}
+
+			if found {
+				if Debug {
+					log.Printf("Found full sequence %#x (len: %d) in given buffer (len: %d) appending %d", sequence, len(sequence), len(buffer), bufferPosition)
+				}
+				sequencePositions = append(sequencePositions, bufferPosition)
+			}
+
+		} else {
+			// log.Printf("lookupSequence Broken sequence in buffer at: %d (len: %d)", bufferPosition, len(buffer))
+		}
+
+		bufferPosition += 1
+		sequencePosition = 0
+	}
+	if Debug {
+		log.Printf("lookupSequence Result for sequence %#x in buffer len %d: %v", sequence, len(buffer), sequencePositions)
+	}
+	return found, sequencePositions, nil
+
+}
+
+func getCurrentOffset(inputFile *os.File) (currentOffset int64, error error) {
+	currentOffset, err := inputFile.Seek(0, os.SEEK_CUR)
+	if err != nil {
+		log.Fatal("Error looking up current offset:", err)
+		return -1, err
+	}
+
+	return currentOffset, nil
+}
+
 func main() {
 
-	inputFilePtr := flag.String("input_file", "test/dump.bin", "Path to input file")
+	inputFilePtr := flag.String("i", "test/dump.bin", "Path to input file")
 	boundarySequencePtr := flag.String("hex", "21097019", "Bounary sequence in hexidecimal")
-	chunkFilenamePrefixPtr := flag.String("prefix", "dump_chunk_", "The first part of the result filename")
-	chunkFilenameSuffixPtr := flag.String("suffix", ".bin", "The last part of the result filename")
+	// chunkFilenamePrefixPtr := flag.String("prefix", "dump_chunk_", "The first part of the result filename")
+	// chunkFilenameSuffixPtr := flag.String("suffix", ".bin", "The last part of the result filename")
+	setDebugPtr := flag.Bool("d", false, "Enable debug")
 	showVersionPtr := flag.Bool("version", false, "Show version")
 
 	flag.Parse()
@@ -29,8 +112,11 @@ func main() {
 		os.Exit(0)
 	}
 
+	if *setDebugPtr {
+		Debug = true
+	}
+
 	log.Print("Starting..")
-	fmt.Println("Starting..")
 
 	var boundrySequence []byte
 	boundrySequence, err := hex.DecodeString(*boundarySequencePtr)
@@ -38,83 +124,81 @@ func main() {
 		log.Fatal("Error encoding hex:", err)
 	}
 
-	log.Printf("%#x", boundrySequence)
+	log.Printf("Boundary sequence: %#x", boundrySequence)
 
 	inputFileHandler, err := os.Open(*inputFilePtr)
 	if err != nil {
 		log.Fatal("Error while opeinig input file:", err)
 	}
+
 	defer inputFileHandler.Close()
 
 	inputFileInfo, _ := inputFileHandler.Stat()
 
 	var inputFileSize int64 = inputFileInfo.Size()
 	var counter int64 = 0
-	const fileChunkSize = 1
+	var positions []int64
+	const fileChunkSize = 204800
+	var partBuffer []byte = make([]byte, fileChunkSize)
 
 	log.Print("Input file size: ", inputFileSize)
 
-	for {
+	for counter <= inputFileSize {
 
-		if counter >= inputFileSize {
-			break
+		if Debug {
+			currentOffset, err := getCurrentOffset(inputFileHandler)
+			if err != nil {
+				log.Fatal("Error while looking up current position: ", err)
+			}
+
+			log.Printf("Current offset before read: %d", currentOffset)
 		}
 
-		partBuffer := make([]byte, fileChunkSize)
 		inputFileHandler.Read(partBuffer)
 
-		firstByte, err := hex.DecodeString("21")
+		currentOffset, err := getCurrentOffset(inputFileHandler)
 		if err != nil {
-			log.Fatal("Error encoding hex:", err)
+			log.Fatal("Error while looking up current position: ", err)
 		}
 
-		secondByte, err := hex.DecodeString("09")
-		if err != nil {
-			log.Fatal("Error encoding hex:", err)
+		if Debug {
+			log.Printf("Current offset after read: %d", currentOffset)
 		}
 
-		thirdByte, err := hex.DecodeString("70")
-		if err != nil {
-			log.Fatal("Error encoding hex:", err)
-		}
+		if bytes.Contains(partBuffer, boundrySequence) {
 
-		fourthByte, err := hex.DecodeString("19")
-		if err != nil {
-			log.Fatal("Error encoding hex:", err)
-		}
-
-		if bytes.Equal(partBuffer, firstByte) {
-			fmt.Printf("\n\n")
-			log.Printf(" %d Found 0x21", counter)
-			partBuffer := make([]byte, fileChunkSize)
-			inputFileHandler.Read(partBuffer)
-
-			if bytes.Equal(partBuffer, secondByte) {
-				log.Printf(" %d Found 0x21 0x09", counter)
-
-				partBuffer := make([]byte, fileChunkSize)
-				inputFileHandler.Read(partBuffer)
-
-				if bytes.Equal(partBuffer, thirdByte) {
-					log.Printf(" %d Found 0x21 0x09 0x70", counter)
-					partBuffer := make([]byte, fileChunkSize)
-					inputFileHandler.Read(partBuffer)
-
-					if bytes.Equal(partBuffer, fourthByte) {
-						log.Printf(" %d Found 0x21 0x09 0x70 0x19", counter)
-						log.Print("Boundary: ", counter)
-
-					}
-
+			if Debug {
+				currentOffset, err := getCurrentOffset(inputFileHandler)
+				if err != nil {
+					log.Fatal("Error while looking up current position: ", err)
 				}
+				log.Printf("Buffer contains boundary. Current file offset: %d", currentOffset)
+			}
+
+			_, positionsFound, err := lookupSequence(partBuffer, boundrySequence)
+			if err != nil {
+				log.Printf("Error while looking up sequence: ", err)
+			}
+
+			log.Printf("Found for offset: %d positions: %v", currentOffset, positionsFound)
+
+			for _, item := range positionsFound {
+				positions = append(positions, int64(item)+currentOffset)
 
 			}
 		}
 
-		var outputFileName = *chunkFilenamePrefixPtr + strconv.FormatInt(counter, 10) + *chunkFilenameSuffixPtr
-		fmt.Printf("\rOutfile: %s \r", outputFileName)
+		counter += fileChunkSize - 3
+		newPosition, err := inputFileHandler.Seek(-3, 1)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-		counter += 1
+		if Debug {
+			log.Printf("New file offset: %d", newPosition)
+		}
 	}
+
+	log.Printf("Found sequence %#x at positions: %v", boundrySequence, positions)
 
 }
