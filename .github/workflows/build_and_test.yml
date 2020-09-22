@@ -1,0 +1,26 @@
+name: Build and test
+
+on:
+  push:
+    branches: [ '*', '!master' ]
+
+jobs:
+
+  build_and_test:
+    name: Build, Test
+    runs-on: ubuntu-latest
+    outputs:
+      job_status: ${{ job.status }}
+
+    steps:
+
+    - name: Check out code
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Build
+      run: make build
+
+    - name: Test
+      run: make test

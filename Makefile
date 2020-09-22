@@ -1,4 +1,5 @@
 VERSION := $(shell cat .version )
+PLATFORM := $(shell uname -s | tr [A-Z] [a-z])
 GO = go
 
 PROGNAME = binsplit
@@ -13,13 +14,26 @@ export PROGROOT=$(PWD)/$(PROGNAME_VERSION)
 
 .PHONY: all version build clean install test
 
+$(TARGZ_FILENAME):
+	mkdir -vp "$(PROGNAME_VERSION)"
+	cp -v $(TARGZ_CONTENTS) "$(PROGNAME_VERSION)/"
+	tar -zvcf "$(TARGZ_FILENAME)" "$(PROGNAME_VERSION)"
 
-linux: $(PROGNAME)
-	env GOOS=linux $(GO) build -ldflags="-X 'main.BuildVersion=$(VERSION)'" -v .
+$(PROGNAME):
+	env GOOS="$(PLATFORM)" $(GO) build -ldflags="-X 'main.BuildVersion=$(VERSION)'" -v -o "$(PROGNAME)" .
 
-osx:
-	env GOOS=darwin $(GO) build -ldflags="-X 'main.BuildVersion=$(VERSION)'" -v .
+test:
+	@echo "Not implemented yet"
 
-.PHONY: clean
+install:
+	install -d $(DESTDIR)/usr/share/doc/$(PROGNAME_VERSION)
+	install -d $(DESTDIR)/usr/bin
+	install -m 755 $(PROGNAME) $(DESTDIR)/usr/bin
+	install -m 644 README.md $(DESTDIR)/usr/share/doc/$(PROGNAME_VERSION)
+
 clean:
 	rm -vf "$(PROGNAME)"
+
+build: $(PROGNAME)
+
+compress: $(TARGZ_FILENAME)
