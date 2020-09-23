@@ -258,7 +258,6 @@ jobs:
           sudo dpkg -i "${{steps.verify_deb_package.outputs.path_to_deb_file}}"
           ls -la /usr/bin/binsplit
           ls -la /usr/share/doc/binsplit*
-          binsplit -h
 
       - name: Create a new tag
         if: >
