@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	// "strconv"
+	"strconv"
+	"strings"
 )
 
 var Debug bool = false
@@ -183,7 +184,7 @@ func main() {
 			log.Printf("Found for offset: %d positions: %v", currentOffset, positionsFound)
 
 			for _, item := range positionsFound {
-				positions = append(positions, int64(item)+currentOffset)
+				positions = append(positions, int64(item)+currentOffset-fileChunkSize)
 
 			}
 		}
@@ -200,5 +201,30 @@ func main() {
 	}
 
 	log.Printf("Found sequence %#x at positions: %v", boundrySequence, positions)
+
+	for idx, position := range positions {
+		log.Printf("%d and %d from %d to %d", idx, idx+1, position, positions[idx+1])
+		_, err := inputFileHandler.Seek(position, 0)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var chunkBuffer []byte = make([]byte, positions[idx+1]-position)
+		var chunkFileName string = strings.Join([]string{"chunk", strconv.Itoa(idx + 1000)}, "_")
+
+		log.Printf("Outfile: %s Length: %d", chunkFileName, positions[idx+1]-position)
+		inputFileHandler.Read(chunkBuffer)
+
+		chunkFileHandler, err := os.OpenFile(chunkFileName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0640)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer chunkFileHandler.Close()
+
+		bytesWrittenLength, err := chunkFileHandler.Write(chunkBuffer)
+		chunkFileHandler.Close()
+
+		log.Printf("Wrote %d bytes into file %s", bytesWrittenLength, chunkFileName)
+	}
 
 }
