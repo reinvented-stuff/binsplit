@@ -11,8 +11,9 @@ import (
 )
 
 var Debug bool = false
-var ApplicationDescription string = "Binary File Splitting"
-var BuildVersion string = "dev"
+
+const ApplicationDescription = "Binary File Splitting"
+const BuildVersion = "dev"
 
 func lookupSequence(buffer []byte, sequence []byte) (found bool, sequencePositions []int, err error) {
 
@@ -75,7 +76,7 @@ func lookupSequence(buffer []byte, sequence []byte) (found bool, sequencePositio
 			// log.Printf("lookupSequence Broken sequence in buffer at: %d (len: %d)", bufferPosition, len(buffer))
 		}
 
-		bufferPosition += 1
+		bufferPosition++
 		sequencePosition = 0
 	}
 	if Debug {
@@ -85,7 +86,7 @@ func lookupSequence(buffer []byte, sequence []byte) (found bool, sequencePositio
 
 }
 
-func getCurrentOffset(inputFile *os.File) (currentOffset int64, error error) {
+func getCurrentOffset(inputFile *os.File) (int64, error) {
 	currentOffset, err := inputFile.Seek(0, os.SEEK_CUR)
 	if err != nil {
 		log.Fatal("Error looking up current offset:", err)
@@ -98,7 +99,7 @@ func getCurrentOffset(inputFile *os.File) (currentOffset int64, error error) {
 func main() {
 
 	inputFilePtr := flag.String("i", "test/dump.bin", "Path to input file")
-	boundarySequencePtr := flag.String("hex", "21097019", "Bounary sequence in hexidecimal")
+	boundarySequencePtr := flag.String("hex", "21097019", "Boundary sequence in hexadecimal")
 	// chunkFilenamePrefixPtr := flag.String("prefix", "dump_chunk_", "The first part of the result filename")
 	// chunkFilenameSuffixPtr := flag.String("suffix", ".bin", "The last part of the result filename")
 	setDebugPtr := flag.Bool("d", false, "Enable debug")
@@ -177,7 +178,7 @@ func main() {
 
 			_, positionsFound, err := lookupSequence(partBuffer, boundrySequence)
 			if err != nil {
-				log.Printf("Error while looking up sequence: ", err)
+				log.Fatal("Error while looking up sequence: ", err)
 			}
 
 			log.Printf("Found for offset: %d positions: %v", currentOffset, positionsFound)
