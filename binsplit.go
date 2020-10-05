@@ -12,8 +12,8 @@ import (
 
 var Debug bool = false
 
-const ApplicationDescription = "Binary File Splitting"
-const BuildVersion = "dev"
+const applicationDescription = "Binary File Splitting"
+const buildVersion = "dev-2"
 
 func lookupSequence(buffer []byte, sequence []byte) (found bool, sequencePositions []int, err error) {
 
@@ -108,8 +108,8 @@ func main() {
 	flag.Parse()
 
 	if *showVersionPtr {
-		fmt.Printf("%s\n", ApplicationDescription)
-		fmt.Printf("Version: %s\n", BuildVersion)
+		fmt.Printf("%s\n", applicationDescription)
+		fmt.Printf("Version: %s\n", buildVersion)
 		os.Exit(0)
 	}
 
