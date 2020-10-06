@@ -12,8 +12,9 @@ import (
 )
 
 var Debug bool = false
-var ApplicationDescription string = "Binary File Splitting"
-var BuildVersion string = "dev"
+
+const applicationDescription = "Binary File Splitting"
+const buildVersion = "dev"  // this will be set to the last version on build (see Makefile)
 
 func lookupSequence(buffer []byte, sequence []byte) (found bool, sequencePositions []int, err error) {
 
@@ -76,7 +77,7 @@ func lookupSequence(buffer []byte, sequence []byte) (found bool, sequencePositio
 			// log.Printf("lookupSequence Broken sequence in buffer at: %d (len: %d)", bufferPosition, len(buffer))
 		}
 
-		bufferPosition += 1
+		bufferPosition++
 		sequencePosition = 0
 	}
 	if Debug {
@@ -86,7 +87,7 @@ func lookupSequence(buffer []byte, sequence []byte) (found bool, sequencePositio
 
 }
 
-func getCurrentOffset(inputFile *os.File) (currentOffset int64, error error) {
+func getCurrentOffset(inputFile *os.File) (int64, error) {
 	currentOffset, err := inputFile.Seek(0, os.SEEK_CUR)
 	if err != nil {
 		log.Fatal("Error looking up current offset:", err)
@@ -99,7 +100,7 @@ func getCurrentOffset(inputFile *os.File) (currentOffset int64, error error) {
 func main() {
 
 	inputFilePtr := flag.String("i", "test/dump.bin", "Path to input file")
-	boundarySequencePtr := flag.String("hex", "21097019", "Bounary sequence in hexidecimal")
+	boundarySequencePtr := flag.String("hex", "21097019", "Boundary sequence in hexadecimal")
 	cutBytesBeforePtr := flag.Int64("cut-before", 0, "Cut N bytes from the beginning of each chunk")
 	// chunkFilenamePrefixPtr := flag.String("prefix", "dump_chunk_", "The first part of the result filename")
 	// chunkFilenameSuffixPtr := flag.String("suffix", ".bin", "The last part of the result filename")
@@ -109,8 +110,8 @@ func main() {
 	flag.Parse()
 
 	if *showVersionPtr {
-		fmt.Printf("%s\n", ApplicationDescription)
-		fmt.Printf("Version: %s\n", BuildVersion)
+		fmt.Printf("%s\n", applicationDescription)
+		fmt.Printf("Version: %s\n", buildVersion)
 		os.Exit(0)
 	}
 
@@ -179,7 +180,7 @@ func main() {
 
 			_, positionsFound, err := lookupSequence(partBuffer, boundrySequence)
 			if err != nil {
-				log.Printf("Error while looking up sequence: ", err)
+				log.Fatal("Error while looking up sequence: ", err)
 			}
 
 			log.Printf("Found for offset: %d positions: %v", currentOffset, positionsFound)
