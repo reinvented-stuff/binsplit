@@ -1,3 +1,3 @@
-module https://github.com/reinvented-stuff/binsplit
+module binsplit
 
 go 1.12

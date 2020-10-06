@@ -93,6 +93,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Clean
+        run: make clean
+
       - name: Build
         run: make build
 
