@@ -100,6 +100,7 @@ func main() {
 
 	inputFilePtr := flag.String("i", "test/dump.bin", "Path to input file")
 	boundarySequencePtr := flag.String("hex", "21097019", "Bounary sequence in hexidecimal")
+	cutBytesBeforePtr := flag.Int64("cut-before", 0, "Cut N bytes from the beginning of each chunk")
 	// chunkFilenamePrefixPtr := flag.String("prefix", "dump_chunk_", "The first part of the result filename")
 	// chunkFilenameSuffixPtr := flag.String("suffix", ".bin", "The last part of the result filename")
 	setDebugPtr := flag.Bool("d", false, "Enable debug")
@@ -204,12 +205,12 @@ func main() {
 
 	for idx, position := range positions {
 		log.Printf("%d and %d from %d to %d", idx, idx+1, position, positions[idx+1])
-		_, err := inputFileHandler.Seek(position+48, 0)
+		_, err := inputFileHandler.Seek(position+*cutBytesBeforePtr, 0)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		var chunkBuffer []byte = make([]byte, positions[idx+1]-position-48)
+		var chunkBuffer []byte = make([]byte, positions[idx+1]-position-*cutBytesBeforePtr)
 		var chunkFileName string = strings.Join([]string{"chunk", strconv.Itoa(idx + 1000)}, "_")
 
 		log.Printf("Outfile: %s Length: %d", chunkFileName, positions[idx+1]-position)
