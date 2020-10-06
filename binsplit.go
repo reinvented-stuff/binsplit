@@ -204,12 +204,12 @@ func main() {
 
 	for idx, position := range positions {
 		log.Printf("%d and %d from %d to %d", idx, idx+1, position, positions[idx+1])
-		_, err := inputFileHandler.Seek(position, 0)
+		_, err := inputFileHandler.Seek(position+48, 0)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		var chunkBuffer []byte = make([]byte, positions[idx+1]-position)
+		var chunkBuffer []byte = make([]byte, positions[idx+1]-position-48)
 		var chunkFileName string = strings.Join([]string{"chunk", strconv.Itoa(idx + 1000)}, "_")
 
 		log.Printf("Outfile: %s Length: %d", chunkFileName, positions[idx+1]-position)
