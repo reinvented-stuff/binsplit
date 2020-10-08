@@ -1,2 +1,2 @@
 # binsplit
-Split a bnary file
+Split a binary file
