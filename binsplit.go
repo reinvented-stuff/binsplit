@@ -14,7 +14,7 @@ import (
 var Debug bool = false
 
 const applicationDescription = "Binary File Splitting"
-const buildVersion = "dev"  // this will be set to the last version on build (see Makefile)
+var buildVersion = "dev"  // this will be set to the last version on build (see Makefile)
 
 func lookupSequence(buffer []byte, sequence []byte) (found bool, sequencePositions []int, err error) {
 
